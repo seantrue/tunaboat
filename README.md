@@ -226,3 +226,11 @@ crowded, macOS may be hiding it; try widening the bar or quitting another menu b
 
 For anything else, `tunaboat up <name>` in a terminal shows the full state progression and the
 underlying reason.
+
+## License
+
+MIT — see [LICENSE](LICENSE). Copyright © 2026 Sean True.
+
+Tunaboat drives the `ssh` binary that ships with macOS; it neither bundles nor links OpenSSH. Its
+one build-time dependency, [swift-argument-parser](https://github.com/apple/swift-argument-parser),
+is Apache 2.0 licensed and used only by the command line tool.

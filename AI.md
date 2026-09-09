@@ -133,6 +133,8 @@ can be traced.
 | 2026-09-08 | AI | Backdrop placement | Applied both offsets and moved vertical placement from fractions to window points, the unit the corrections arrive in. Raising the mark required narrowing it — at its old size, centring it that high pushed the bow off the top edge, which it had been clipping slightly all along. |
 | 2026-09-08 | Human | Direction | Bump the release, commit, build, upload the disk image — and add a formatted version of the documentation. |
 | 2026-09-08 | AI | `Scripts/make-docs.sh` | `README.md` to a single self-contained `docs/Tunaboat.html` via pandoc, stylesheet inlined and artwork embedded, shipped as a release asset beside the disk image. |
+| 2026-09-08 | Human | Licensing | Asked for an MIT license. |
+| 2026-09-08 | AI | `LICENSE` | Standard MIT text, unmodified so GitHub's license detection recognises it, copyright to the human maintainer. README gained a License section noting that Tunaboat drives the system `ssh` rather than bundling or linking OpenSSH, and that its one dependency is Apache 2.0 and CLI-only; the rendered page was regenerated to match. |
 
 ## Code
 
@@ -141,7 +143,7 @@ can be traced.
 | Swift LOC (`Sources/`) | 2834 | 0 |
 | Test LOC (`Tests/`) | 1719 | 0 |
 | `Package.swift` + scripts + stylesheet | 856 | 0 |
-| Docs (lines, incl. this file) | 1106 | 0 |
+| Docs (lines, incl. this file and LICENSE) | 1138 | 0 |
 | Artwork | 0 | 1 source drawing |
 | Tests passing | 108 in 19 suites | — |
 
