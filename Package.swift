@@ -21,7 +21,11 @@ let package = Package(
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
             ]
         ),
-        .executableTarget(name: "TunaboatApp", dependencies: ["TunaboatCore"]),
+        .executableTarget(
+            name: "TunaboatApp",
+            dependencies: ["TunaboatCore"],
+            resources: [.process("Resources")]
+        ),
         .testTarget(name: "TunaboatCoreTests", dependencies: ["TunaboatCore"]),
     ]
 )

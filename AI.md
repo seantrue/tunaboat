@@ -123,15 +123,26 @@ can be traced.
 | 2026-09-08 | AI | Universal build | `--universal` on `bundle-app.sh` (arm64 + x86_64), with the arch flags also passed to `--show-bin-path` — without that a universal build's output directory is missed and stale single-arch binaries get signed instead. The script now reports `lipo -archs` and fails if the flag did not take effect; `make-dmg.sh` builds universal by default and warns when packaging an arm64-only app. |
 | 2026-09-08 | AI | Scrub, second pass | Username and home directory removed from the test fixtures and the ssh output notes. The signing identity is deliberately kept: it is required to build and is embedded in every signed binary already. |
 | 2026-09-08 | AI | History | Squashed to a single commit, so the earlier host names and username are not recoverable from the repository. `v0.1.0` withdrawn — its commit no longer exists, and its disk image was Apple-silicon only. |
+| 2026-09-08 | Human | Artwork | Supplied `tunaboat.png`/`.svg` — a boat trolling many lines out to many fish — and asked where it should go, floating a watermark behind the editor. |
+| 2026-09-08 | AI | Recommendation | Advised against the watermark (dense form, dark mode, uneven control backgrounds) and pointed at the real gap: the app had no icon at all. |
+| 2026-09-08 | Human | Decision | Chose the app icon, the editor's empty pane, and the disk image backdrop; dropped the watermark. |
+| 2026-09-08 | AI | `Scripts/make-assets.py` | Derives the `.icns`, the in-app template mark and the disk image backdrop from the source art. Outputs committed, so a normal build needs neither Pillow nor the artwork. |
+| 2026-09-08 | AI | Icon wiring | `CFBundleIconFile` plus the copy of SwiftPM's resource bundle into `Contents/Resources`, without which `Bundle.module` would crash the packaged app. |
+| 2026-09-08 | AI | Disk image backdrop | Multi-resolution TIFF via `tiffutil`, staged into `.background/`, with the mount/detach handling hardened after a stale mount blocked a build. |
+| 2026-09-08 | Human | Art direction | Measured the backdrop against the real window: wordmark ~40pt too low, mark ~15pt too low. |
+| 2026-09-08 | AI | Backdrop placement | Applied both offsets and moved vertical placement from fractions to window points, the unit the corrections arrive in. Raising the mark required narrowing it — at its old size, centring it that high pushed the bow off the top edge, which it had been clipping slightly all along. |
+| 2026-09-08 | Human | Direction | Bump the release, commit, build, upload the disk image — and add a formatted version of the documentation. |
+| 2026-09-08 | AI | `Scripts/make-docs.sh` | `README.md` to a single self-contained `docs/Tunaboat.html` via pandoc, stylesheet inlined and artwork embedded, shipped as a release asset beside the disk image. |
 
 ## Code
 
 | Metric | AI | Human |
 |---|---|---|
-| Swift LOC (`Sources/`) | 2801 | 0 |
+| Swift LOC (`Sources/`) | 2834 | 0 |
 | Test LOC (`Tests/`) | 1719 | 0 |
-| `Package.swift` + scripts | 162 | 0 |
-| Docs (lines, incl. this file) | 720 | 0 |
+| `Package.swift` + scripts + stylesheet | 856 | 0 |
+| Docs (lines, incl. this file) | 1106 | 0 |
+| Artwork | 0 | 1 source drawing |
 | Tests passing | 108 in 19 suites | — |
 
 Counted with `wc -l` at the initial commit; earlier rows in this table were estimates and ran low.
@@ -249,6 +260,21 @@ This section is not decorative. Recorded so far:
   below, and the AI had flagged that gap without acting on it. Fixed by moving list presentation
   into `TunaboatCore` as `TunnelListPresenter` and covering it with 7 tests, so the list can no
   longer be derived from the wrong collection without a test failing.
+- **The icon was designed by reasoning and came out wrong three times.** Each attempt looked
+  correct in the code and failed the moment it was rendered and inspected: a linear
+  darkness-to-alpha map turned the source's uneven paper into a ghost rectangle behind the boat;
+  downsampling hairline strokes deleted them, giving an icon that was very nearly blank at every
+  size; and fitting the small-size crop by width alone drove a tall mark straight off the plate.
+  A fourth assumption — that the boat alone would read better than the full mark at 16pt — was
+  also wrong, and only a side-by-side render showed it. Nothing here was catchable by testing;
+  it needed looking at the output.
+- **A cleanup loop detached every disk image on the machine.** Trying to clear one stuck
+  `/Volumes/Tunaboat`, the AI iterated over the whole of `hdiutil info` instead of filtering to
+  the project's own images, and detached Xcode simulator runtimes and a Time Machine
+  sparsebundle along with it. No backup was running and the simulator volumes remount on demand,
+  so nothing was lost — but the blast radius was the user's whole machine, for a build-script
+  problem, and the loop did not even detach the volume it was aimed at. `make-dmg.sh` now keeps
+  the device from its own `hdiutil attach` and detaches only that.
 - **The first release was Apple-silicon only, and nothing said so.** `swift build` targets the
   building machine, so the notarized `v0.1.0` disk image could not launch on an Intel Mac at all —
   not a degraded experience, an absent architecture with no Rosetta fallback. Every check the AI

@@ -6,3 +6,9 @@
 # Per project convention: claude-debug notes are tracked, code and data are not.
 claude-debug/*
 !claude-debug/*.md
+
+# Python bytecode from Scripts/make-assets.py
+__pycache__/
+
+# iconutil scratch — Resources/Tunaboat.icns is the committed artifact
+Resources/Tunaboat.iconset/

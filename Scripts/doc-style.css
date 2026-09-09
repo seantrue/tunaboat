@@ -1,0 +1,118 @@
+/* Styling for the rendered README (Scripts/make-docs.sh).
+   Colours follow the app icon's deep-water plate so the page and the product match. */
+
+:root {
+    --ink: #1a1c1f;
+    --muted: #5c6670;
+    --rule: #dfe3e7;
+    --paper: #fbfbf9;      /* the artwork's own field */
+    --panel: #f2f4f6;
+    --accent: #1e4a6e;     /* the icon plate */
+    --accent-soft: #eaf0f5;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --ink: #e6e9ec;
+        --muted: #9aa4ae;
+        --rule: #2c3238;
+        --paper: #16191c;
+        --panel: #1f2429;
+        --accent: #7fb3d9;
+        --accent-soft: #1b2732;
+    }
+}
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+    margin: 0 auto;
+    padding: 3.5rem 1.5rem 6rem;
+    max-width: 46rem;
+    background: var(--paper);
+    color: var(--ink);
+    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-variant-numeric: tabular-nums;
+}
+
+h1, h2, h3 { line-height: 1.25; font-weight: 600; }
+h1 { font-size: 2.1rem; margin: 0 0 .4rem; letter-spacing: -0.02em; }
+h2 {
+    font-size: 1.35rem;
+    margin: 3rem 0 .9rem;
+    padding-bottom: .4rem;
+    border-bottom: 1px solid var(--rule);
+}
+h3 { font-size: 1.08rem; margin: 2rem 0 .6rem; }
+
+p, ul, ol { margin: 0 0 1rem; }
+li { margin: .3rem 0; }
+
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+strong { font-weight: 600; }
+
+hr { border: 0; border-top: 1px solid var(--rule); margin: 2.5rem 0; }
+
+/* The header artwork, which pandoc emits as a lone image in its own paragraph. */
+p > img { display: block; margin: 1.5rem auto 2.5rem; max-width: 100%; height: auto; }
+@media (prefers-color-scheme: dark) {
+    /* Black line art on a light field: invert it rather than let it disappear. */
+    p > img { filter: invert(1) hue-rotate(180deg); opacity: .82; }
+}
+
+code, kbd, pre {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: .89em;
+}
+
+code {
+    background: var(--panel);
+    padding: .12em .35em;
+    border-radius: 4px;
+}
+
+pre {
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: .9rem 1.1rem;
+    /* Wide command lines scroll inside the block; the page never scrolls sideways. */
+    overflow-x: auto;
+}
+pre code { background: none; padding: 0; }
+
+blockquote {
+    margin: 1.2rem 0;
+    padding: .1rem 1.1rem;
+    border-left: 3px solid var(--accent);
+    background: var(--accent-soft);
+    border-radius: 0 6px 6px 0;
+    color: var(--muted);
+}
+
+/* Tables carry the field reference and the status key, so they need to stay legible. */
+.table-wrap { overflow-x: auto; margin: 0 0 1.4rem; }
+table { border-collapse: collapse; width: 100%; font-size: .95rem; }
+th, td {
+    text-align: left;
+    vertical-align: top;
+    padding: .5rem .7rem;
+    border-bottom: 1px solid var(--rule);
+}
+th { font-weight: 600; color: var(--muted); border-bottom-width: 2px; }
+tbody tr:last-child td { border-bottom: none; }
+
+footer.doc-footer {
+    margin-top: 4rem;
+    padding-top: 1.2rem;
+    border-top: 1px solid var(--rule);
+    color: var(--muted);
+    font-size: .85rem;
+}
+
+@media print {
+    body { max-width: none; padding: 0; color: #000; background: #fff; }
+    pre, blockquote { break-inside: avoid; }
+    h2, h3 { break-after: avoid; }
+}

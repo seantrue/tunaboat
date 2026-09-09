@@ -12,11 +12,15 @@ struct TunnelEditorView: View {
             if let id = model.selection, let spec = model.binding(for: id) {
                 TunnelDetailView(model: model, spec: spec, id: id)
             } else {
-                ContentUnavailableView(
-                    "No Tunnel Selected",
-                    systemImage: "arrow.left.arrow.right",
-                    description: Text("Select a tunnel, or add one with +.")
-                )
+                ContentUnavailableView {
+                    Label {
+                        Text("No Tunnel Selected")
+                    } icon: {
+                        TunaboatMark()
+                    }
+                } description: {
+                    Text("Select a tunnel, or add one with +.")
+                }
             }
         }
         .toolbar {
@@ -443,5 +447,34 @@ struct CommandPreview: View {
                     .transition(.opacity)
             }
         }
+    }
+}
+
+
+/// The Tunaboat mark, for the one place in the UI with room for it: the empty detail pane.
+///
+/// Drawn as a **template** image and tinted, so a single black-on-transparent asset works in
+/// both appearances — the artwork is black line work, which would be invisible in dark mode if
+/// it were rendered as-is.
+struct TunaboatMark: View {
+    var width: CGFloat = 190
+
+    var body: some View {
+        if let image = NSImage(named: "TunaboatMark") ?? bundled() {
+            Image(nsImage: image)
+                .renderingMode(.template)
+                .resizable()
+                .scaledToFit()
+                .frame(width: width)
+                .foregroundStyle(.tertiary)
+                .accessibilityHidden(true)
+        }
+    }
+
+    /// `Bundle.module` is where SwiftPM puts a target's resources; `NSImage(named:)` searches
+    /// the main bundle, which for a `swift run` build is not the same place.
+    private func bundled() -> NSImage? {
+        Bundle.module.url(forResource: "TunaboatMark", withExtension: "png")
+            .flatMap { NSImage(contentsOf: $0) }
     }
 }

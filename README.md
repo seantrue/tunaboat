@@ -1,5 +1,7 @@
 # Tunaboat
 
+<img src="Art/tunaboat.png" alt="" width="380">
+
 An SSH tunnel manager for macOS. It keeps your port forwards in one place, shows you at a glance
 whether each one is actually carrying traffic, and tells you *why* when one isn't.
 

@@ -34,6 +34,18 @@ done
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+# Detach a disk image device, allowing for Finder and Spotlight still holding it.
+detach_device() {
+    local device="$1"
+    [[ -n "$device" ]] || return 1
+    for attempt in 1 2 3 4 5 6; do
+        if hdiutil detach "$device" >/dev/null 2>&1; then return 0; fi
+        sleep 2
+        if hdiutil detach "$device" -force >/dev/null 2>&1; then return 0; fi
+    done
+    return 1
+}
+
 APP=".build/Tunaboat.app"
 IDENTITY="Developer ID Application: Sean True ($TEAM_ID)"
 VOLNAME="Tunaboat"
@@ -82,6 +94,28 @@ ditto "$APP" "$STAGE/Tunaboat.app"
 # /Applications on whatever machine mounts it.
 ln -s /Applications "$STAGE/Applications"
 
+# The window backdrop. Finder looks for it inside the image, so it has to be staged in — and
+# in a dot-directory, or it appears as a file next to the app.
+BACKGROUND_SRC="$ROOT/Resources/dmg-background.png"
+BACKGROUND_2X="$ROOT/Resources/dmg-background@2x.png"
+HAS_BACKGROUND=0
+if [[ -f "$BACKGROUND_SRC" ]]; then
+    mkdir -p "$STAGE/.background"
+    # A multi-representation TIFF is how one backdrop serves Retina and non-Retina; without it
+    # Finder upscales the 1x image and the line art goes soft on every modern display.
+    if [[ -f "$BACKGROUND_2X" ]] && command -v tiffutil >/dev/null; then
+        tiffutil -cathidpicheck "$BACKGROUND_SRC" "$BACKGROUND_2X" \
+            -out "$STAGE/.background/background.tiff" >/dev/null 2>&1 \
+            && BACKGROUND_NAME="background.tiff"
+    fi
+    if [[ -z "${BACKGROUND_NAME:-}" ]]; then
+        cp "$BACKGROUND_SRC" "$STAGE/.background/background.png"
+        BACKGROUND_NAME="background.png"
+    fi
+    HAS_BACKGROUND=1
+    echo "==> backdrop: $BACKGROUND_NAME"
+fi
+
 # A read/write image first, so Finder can record the window layout into it; converted to a
 # compressed read-only image at the end.
 RW_DMG=".build/Tunaboat-rw.dmg"
@@ -89,9 +123,33 @@ rm -f "$RW_DMG"
 hdiutil create -srcfolder "$STAGE" -volname "$VOLNAME" -fs HFS+ \
     -format UDRW -ov "$RW_DMG" >/dev/null
 
+# AppleScript has no conditional for this, so the clause is either present or empty.
+if [[ "$HAS_BACKGROUND" -eq 1 ]]; then
+    BACKGROUND_CLAUSE="set background picture of opts to file \".background:$BACKGROUND_NAME\""
+else
+    BACKGROUND_CLAUSE=""
+fi
+
 echo "==> laying out the window"
 MOUNT_DIR="/Volumes/$VOLNAME"
-hdiutil attach "$RW_DMG" -mountpoint "$MOUNT_DIR" -nobrowse -noverify >/dev/null
+
+# Finder can only be told to arrange a volume it can see, which means mounting under /Volumes
+# under the product's own name — so a *previously* mounted Tunaboat image (an earlier release
+# left attached, say) collides with this one. Clear it first rather than laying out the wrong
+# volume and then failing to eject.
+if mount | grep -q " $MOUNT_DIR "; then
+    echo "    $MOUNT_DIR already mounted — detaching it first"
+    detach_device "$(mount | awk -v m=" $MOUNT_DIR " '$0 ~ m {print $1}')" || {
+        echo "error: $MOUNT_DIR is mounted and will not detach; eject it and re-run" >&2
+        exit 1
+    }
+fi
+
+# Keep the device this attach produced. Detaching by mount point is what fails once anything
+# else has looked at the volume; detaching the specific device is both more precise and what
+# lets the retry below mean anything.
+ATTACH_OUT="$(hdiutil attach "$RW_DMG" -mountpoint "$MOUNT_DIR" -nobrowse -noverify)"
+RW_DEVICE="$(echo "$ATTACH_OUT" | awk '/^\/dev\/disk/{print $1; exit}')"
 
 # Finder scripting needs an Automation permission and a real GUI session; when it is refused
 # the image is still perfectly usable, just without the arranged icons. Never fatal.
@@ -106,6 +164,8 @@ tell application "Finder"
         set opts to the icon view options of container window
         set arrangement of opts to not arranged
         set icon size of opts to 96
+        set text size of opts to 12
+        $BACKGROUND_CLAUSE
         set position of item "Tunaboat.app" of container window to {160, 200}
         set position of item "Applications" of container window to {480, 200}
         update without registering applications
@@ -119,7 +179,14 @@ then
 fi
 
 sync
-hdiutil detach "$MOUNT_DIR" >/dev/null || hdiutil detach "$MOUNT_DIR" -force >/dev/null
+# Ejecting straight after Finder has touched the volume regularly fails with "Resource busy":
+# Finder and Spotlight are still finishing with it. One immediate attempt then a short backoff
+# is enough; giving up silently would leave a stale mount that breaks the *next* run.
+if ! detach_device "$RW_DEVICE"; then
+    echo "error: could not detach $MOUNT_DIR (still busy after retries)" >&2
+    echo "       eject it in Finder, then re-run" >&2
+    exit 1
+fi
 
 echo "==> compressing"
 hdiutil convert "$RW_DMG" -format UDZO -imagekey zlib-level=9 -o "$DMG" >/dev/null

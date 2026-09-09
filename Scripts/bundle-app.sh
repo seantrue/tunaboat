@@ -76,6 +76,25 @@ cp "$BIN_DIR/TunaboatApp" "$APP/Contents/MacOS/Tunaboat"
 # the app binary. Helpers is a standard nested-code location and keeps the CLI's real name.
 cp "$BIN_DIR/tunaboat" "$APP/Contents/Helpers/tunaboat"
 
+# The icon. Without it macOS shows a generic blank in Finder, the Dock, Login Items, System
+# Settings and the About box. Generated from Art/ by Scripts/make-assets.py and committed, so
+# an ordinary build needs neither Pillow nor the source artwork.
+# SwiftPM puts a target's declared resources in a side bundle next to the executable, and
+# `Bundle.module` calls fatalError when it cannot find it — so omitting this does not degrade
+# gracefully, it crashes the packaged app the moment the empty editor pane appears.
+for resource_bundle in "$BIN_DIR"/*.bundle; do
+    [[ -e "$resource_bundle" ]] || continue
+    echo "    resources: $(basename "$resource_bundle")"
+    cp -R "$resource_bundle" "$APP/Contents/Resources/"
+done
+
+ICNS="$ROOT/Resources/Tunaboat.icns"
+if [[ -f "$ICNS" ]]; then
+    cp "$ICNS" "$APP/Contents/Resources/Tunaboat.icns"
+else
+    echo "    warning: $ICNS missing — the app will have no icon"
+fi
+
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -85,6 +104,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>CFBundleDisplayName</key><string>Tunaboat</string>
     <key>CFBundleIdentifier</key><string>dev.impressionist.tunaboat</string>
     <key>CFBundleExecutable</key><string>Tunaboat</string>
+    <key>CFBundleIconFile</key><string>Tunaboat</string>
     <key>CFBundlePackageType</key><string>APPL</string>
     <key>CFBundleShortVersionString</key><string>${VERSION}</string>
     <key>CFBundleVersion</key><string>${BUILD}</string>

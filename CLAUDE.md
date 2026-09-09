@@ -135,6 +135,61 @@ and increases. Tag a release `v0.2.0` and both follow.
 Tunaboat is not sandboxed, so it needs no entitlements; it reads `~/.ssh/config` and spawns
 `/usr/bin/ssh`, and sandboxing it later would require revisiting both.
 
+## Artwork
+
+The source is `Art/tunaboat.png` (and the VTracer `.svg` beside it). `Scripts/make-assets.py`
+derives everything else and the outputs are **committed**, so an ordinary build needs neither
+Pillow nor the source. Re-run it only when the artwork changes:
+
+```sh
+python3 Scripts/make-assets.py
+```
+
+| Output | Used by |
+|---|---|
+| `Resources/Tunaboat.icns` | `bundle-app.sh`, via `CFBundleIconFile` |
+| `Resources/dmg-background.png` (+`@2x`) | `make-dmg.sh`, as the Finder backdrop |
+| `Sources/TunaboatApp/Resources/TunaboatMark.png` | the editor's empty pane |
+
+Four things that had to be learned by rendering and looking, not by reasoning:
+
+- **The field is not flat.** It runs `#EE` at the edges and `#F3` in the middle, so mapping
+  darkness to alpha linearly leaves a faintly opaque *rectangle* exactly where the art sits —
+  visible in the icon as a ghost box behind the boat. Anything below `FIELD_FLOOR` is paper.
+- **Downsampling hairlines deletes them.** The first icon was a ghost: a one-pixel stroke
+  reduced eightfold averages away to nothing. Dilate the alpha *before* the resize by roughly
+  the reduction factor, then restore density with a gamma.
+- **The plate is dark on purpose.** Black line art on a near-white plate vanished at every size
+  below 256pt. White strokes on deep water survive the reduction.
+- **One mark at every size.** Cropping to the boat alone for the small sizes seemed obviously
+  right — ten fish on hairline trolling lines ought to be noise at 16pt. Rendered side by side,
+  the boat alone collapsed into a featureless vertical bar while the full mark kept a
+  distinguishable silhouette. The small sizes get more dilation instead.
+
+The in-app mark is drawn as a **template** image and tinted, so one black-on-transparent asset
+serves both appearances; rendered as-is it would be invisible in dark mode.
+
+**`bundle-app.sh` must copy SwiftPM's resource bundle into `Contents/Resources`.** A target with
+`resources:` gets a side bundle next to the executable, and `Bundle.module` calls `fatalError`
+when it cannot find it — so omitting the copy does not degrade to a missing image, it crashes the
+packaged app the moment the empty editor pane appears.
+
+**Disk image volumes are mounted under their product name, so they collide.** Finder can only be
+told to arrange a volume it can see, which means `/Volumes/Tunaboat` — and an earlier Tunaboat
+image left attached takes that path. `make-dmg.sh` clears it first, keeps the device returned by
+its own `hdiutil attach`, and retries the detach: ejecting immediately after Finder has touched
+a volume routinely fails with `Resource busy`, and giving up silently leaves a stale mount that
+breaks the *next* run. Detach the specific device, never every attached image — the machine has
+Time Machine sparsebundles and simulator runtimes attached too.
+
+### Rendered documentation
+
+`Scripts/make-docs.sh` turns `README.md` into `docs/Tunaboat.html` with pandoc — one
+self-contained file with the stylesheet inlined and the artwork embedded as a data URI, so it
+survives being attached to a release or opened with no network. `Scripts/doc-style.css` is the
+source stylesheet; the output is committed, so a normal build does not need pandoc. Re-run it
+whenever `README.md` changes, and ship it alongside the disk image.
+
 ## Layout
 
 ```
